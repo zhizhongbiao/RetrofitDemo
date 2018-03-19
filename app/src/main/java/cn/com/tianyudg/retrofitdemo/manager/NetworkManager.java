@@ -1,8 +1,12 @@
 package cn.com.tianyudg.retrofitdemo.manager;
 
+import android.content.Context;
+
 import java.io.IOException;
 
 import cn.com.tianyudg.retrofitdemo.config.ApiService;
+import cn.com.tianyudg.retrofitdemo.interceptor.AddCookiesInterceptor;
+import cn.com.tianyudg.retrofitdemo.interceptor.ReceivedCookiesInterceptor;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -18,9 +22,17 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class NetworkManager {
 
+    private static Context mContext;
+
     private static NetworkManager instance;
 
     private NetworkManager() {
+
+    }
+
+
+    public static void init(Context context) {
+        mContext = context;
     }
 
     public static NetworkManager getInstance() {
@@ -36,9 +48,8 @@ public class NetworkManager {
     }
 
 
-
     //    不知道为何该方法添加Header无效
-    Interceptor mInterceptor= new Interceptor(){
+    Interceptor mInterceptor = new Interceptor() {
 
         @Override
         public Response intercept(Chain chain) throws IOException {
@@ -54,8 +65,10 @@ public class NetworkManager {
 
     public Retrofit getRetrofit() {
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                .addInterceptor(mInterceptor)
+                .addInterceptor(new ReceivedCookiesInterceptor(mContext))
+                .addInterceptor(new AddCookiesInterceptor(mContext))
                 .build();
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("http://dongguan.huifang.cn/api/")
                 .client(okHttpClient)
@@ -65,9 +78,11 @@ public class NetworkManager {
     }
 
 
-    public ApiService getApiService()
-    {
+    public ApiService getApiService() {
         return getRetrofit().create(ApiService.class);
-    };
+    }
+
+    ;
+
 
 }

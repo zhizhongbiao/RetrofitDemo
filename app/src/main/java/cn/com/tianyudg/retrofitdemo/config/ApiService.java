@@ -2,6 +2,7 @@ package cn.com.tianyudg.retrofitdemo.config;
 
 import cn.com.tianyudg.retrofitdemo.bean.LoginBean;
 import cn.com.tianyudg.retrofitdemo.bean.NewListBean;
+import cn.com.tianyudg.retrofitdemo.bean.SecondHandListBean;
 import retrofit2.Call;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
@@ -24,7 +25,11 @@ public interface ApiService {
 
 
     @POST("D{ealer_estateLis}t")
-    Call<NewListBean> newList(@Path("ealer_estateLis")String replaceableUrl);
+    Call<NewListBean> newList(@Path("ealer_estateLis") String replaceableUrl);
 
+    @FormUrlEncoded
+    @Headers("X-Requested-With: XMLHttpRequest")
+    @POST("Dealer_estateDetail")
+    Call<SecondHandListBean> getSecondList(@Field("project_key") String key);
 
 }
