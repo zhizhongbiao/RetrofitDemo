@@ -6,6 +6,8 @@ import android.view.View;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import cn.com.tianyudg.retrofitdemo.bean.LoginBean;
 import cn.com.tianyudg.retrofitdemo.bean.NewListBean;
@@ -19,11 +21,15 @@ import retrofit2.Response;
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action0;
+import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
     private TextView textView;
+    private ArrayList<List<String>> outList;
 
 
     @Override
@@ -31,6 +37,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         textView = (TextView) findViewById(R.id.tvText);
+        outList = new ArrayList<>();
+
+        for (int i = 0; i < 5; i++) {
+            ArrayList<String> inList = new ArrayList<>();
+            for (int j = 0; j < 10; j++) {
+                inList.add("inList - " + j);
+            }
+            outList.add(inList);
+        }
 
     }
 
@@ -93,36 +108,106 @@ public class MainActivity extends AppCompatActivity {
                             .body();
                     subscriber.onNext(secondHandListBean);
                     subscriber.onCompleted();
-                    LogUtils.e("- - - call - - -thread="+Thread.currentThread().getName());
+                    LogUtils.e("- - - call - - -thread=" + Thread.currentThread().getName());
 
                 } catch (IOException e) {
-
-                    LogUtils.e("- - - call - - -IOException  ="+e.getMessage());
+                    LogUtils.e("- - - call - - -IOException  =" + e.getMessage());
                 }
 
             }
         })
-                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
                 .subscribe(new Subscriber<SecondHandListBean>() {
 
 
-            @Override
-            public void onCompleted() {
-                LogUtils.e("onCompleted - - -");
-            }
+                    @Override
+                    public void onCompleted() {
+                        LogUtils.e("onCompleted - - -");
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                LogUtils.e("onError - - -e.getMessage()=" + e.getMessage());
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        LogUtils.e("onError - - -e.getMessage()=" + e.getMessage());
+                    }
 
-            @Override
-            public void onNext(SecondHandListBean secondHandListBean) {
-                LogUtils.e("onNext - - -thread="+Thread.currentThread().getName());
-                textView.setText(secondHandListBean.msg);
-            }
-        });
+                    @Override
+                    public void onNext(SecondHandListBean secondHandListBean) {
+                        LogUtils.e("onNext - - -thread=" + Thread.currentThread().getName());
+                        textView.setText(secondHandListBean.msg);
+                    }
+                });
+    }
+
+    public void mapTestClick(View view) {
+        Observable.just(1, 4, 1, 3)
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        LogUtils.e("doOnSubscribe() 和Subscriber.onStart()方法一样运行在流程的前面" +
+                                "，但是doOnSubscribe()执行的线程跟随在其后距离最近的调用的subscribeOn()设置的线程" +
+                                "，如果其后没有调用subscribeOn()设置的线程，则默认执行在 subscribe() 发生的线程");
+
+                        LogUtils.e("doOnSubscribe -thread=" + Thread.currentThread().getName());
+                    }
+                })
+                .subscribeOn(Schedulers.newThread())
+                .doOnSubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        LogUtils.e("doOnSubscribe - - 此处应该默认执行在 subscribe() 发生的线程 - - thread=" + Thread.currentThread().getName());
+
+                    }
+                })
+                .observeOn(Schedulers.io())
+                .map(new Func1<Integer, String>() {
+                    @Override
+                    public String call(Integer integer) {
+                        LogUtils.e("- - - call - - -thread=" + Thread.currentThread().getName());
+                        return integer + "";
+                    }
+                })
+
+                .subscribe(new Subscriber<String>() {
+                    @Override
+                    public void onStart() {
+
+                    }
+
+                    @Override
+                    public void onCompleted() {
+                        LogUtils.e("onCompleted");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        LogUtils.e("onError  msg=" + e.getMessage());
+                    }
+
+                    @Override
+                    public void onNext(String s) {
+                        LogUtils.e("onNext - - -thread=" + Thread.currentThread().getName());
+                        LogUtils.e("onNext  s=" + s);
+                    }
+                });
+    }
+
+    public void flatMapTestClick(View view) {
+        Observable.from(outList)
+                .flatMap(new Func1<List<String>, Observable<String>>() {
+                    @Override
+                    public Observable<String> call(List<String> strings) {
+                        return Observable.from(strings);
+                    }
+                })
+                .subscribe(new Action1<String>() {
+                    @Override
+                    public void call(String s) {
+                        LogUtils.e("s = " + s);
+                    }
+                });
+
     }
 }
 
